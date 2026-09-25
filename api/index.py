@@ -1,8 +1,10 @@
 from fastapi import FastAPI
 
-app = FastAPI(title="WordPress Tools API")
+app = FastAPI()
 
 
 @app.get("/")
 def read_root():
-    return {"message": "Hello from FastAPI"}
+    return {"message": "FastAPI is running on Vercel"}
+
+# Your other endpoints...
