@@ -5,3 +5,4 @@ pillow
 PyMuPDF
 pydantic
 yt-dlp
+python-multipart

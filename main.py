@@ -2,7 +2,7 @@ import io
 import httpx
 import yt_dlp
 import zipfile
-import fitz  # PyMuPDF
+import pymupdf as fitz
 from PIL import Image
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
