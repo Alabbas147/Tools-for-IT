@@ -2,6 +2,6 @@ fastapi
 uvicorn
 httpx
 pillow
-PyMuPDFb
+PyMuPDF
 pydantic
 yt-dlp
