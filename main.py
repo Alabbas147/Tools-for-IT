@@ -11,14 +11,6 @@ from fastapi.responses import StreamingResponse
 
 app = FastAPI(title="Freelance Calculator API")
 
-@app.get("/")
-def read_root():
-    return {
-        "status": "online",
-        "message": "Tools-for-IT FastAPI backend is running successfully on Vercel"
-    }
-
-# Enable CORS so your WordPress site can talk to this Python server
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -26,6 +18,13 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.get("/")
+def read_root():
+    return {
+        "status": "online",
+        "message": "Tools-for-IT FastAPI backend is running successfully on Vercel"
+    }
 
 class RateRequest(BaseModel):
     desired_income: float
