@@ -1,15 +1,25 @@
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
 import io
+import os
 import httpx
 import yt_dlp
 import zipfile
 import pymupdf as fitz
 from PIL import Image
-from fastapi import FastAPI, UploadFile, File, Form
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from fastapi.responses import StreamingResponse
+from google import genai
+from google.genai import types
 
 app = FastAPI(title="Freelance Calculator API")
+GEMINI_KEY = os.getenv("GEMINI_API_KEY")
+gemini_client = genai.Client(api_key=GEMINI_KEY) if GEMINI_KEY else None
 
 app.add_middleware(
     CORSMiddleware,
@@ -55,6 +65,9 @@ class HtaccessRequest(BaseModel):
     custom_redirects: list[dict] = []
     enable_litespeed_cache: bool = False
     enable_cors: bool = False
+
+class ExplainRequest(BaseModel):
+    htaccess_code: str
 
 class VideoRequest(BaseModel):
     url: str
@@ -355,6 +368,42 @@ async def generate_htaccess(data: HtaccessRequest):
         rules.append("</IfModule>")
 
     return {"htaccess_code": "\n".join(rules)}
+
+@app.post("/api/v1/explain-htaccess")
+async def explain_htaccess(payload: ExplainRequest):
+    if not gemini_client:
+        raise HTTPException(
+            status_code=500,
+            detail="Gemini API Key is not configured on server."
+        )
+
+    if not payload.htaccess_code.strip():
+        raise HTTPException(status_code=400, detail="No code provided to explain.")
+
+    prompt = f"""
+    You are an expert web systems administrator. Explain the following .htaccess rules
+    in plain, simple English for web developers and site owners.
+    Keep it to 2-3 concise bullet points. Be direct, clear, and highlight key security/performance impacts.
+
+    .htaccess Code:
+    {payload.htaccess_code}
+    """
+
+    try:
+        response = gemini_client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                temperature=0.2,
+                max_output_tokens=250,
+            ),
+        )
+        return {"explanation": response.text}
+    except Exception as error:
+        raise HTTPException(
+            status_code=500,
+            detail=f"AI Explanation Error: {str(error)}",
+        ) from error
 
 @app.post("/extract-video")
 async def extract_video(data: VideoRequest):

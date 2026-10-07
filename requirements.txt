@@ -6,3 +6,4 @@ PyMuPDF
 pydantic
 yt-dlp
 python-multipart
+google-genai
