@@ -1,4 +1,47 @@
-from dotenv import load_dotenv
+import os
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+
+app = FastAPI()
+
+@app.get("/")
+def read_root():
+    return {"status": "online", "service": "ChiralGrid API"}
+
+class ExplainRequest(BaseModel):
+    htaccess_code: str
+
+@app.post("/api/v1/explain-htaccess")
+async def explain_htaccess(payload: ExplainRequest):
+    gemini_key = os.getenv("GEMINI_API_KEY")
+    if not gemini_key:
+        raise HTTPException(
+            status_code=500,
+            detail="GEMINI_API_KEY environment variable is missing on Vercel."
+        )
+
+    if not payload.htaccess_code.strip():
+        raise HTTPException(status_code=400, detail="No code provided to explain.")
+
+    try:
+        # Import lazily to prevent serverless startup crashes
+        from google import genai
+
+        client = genai.Client(api_key=gemini_key)
+        prompt = f"Explain the following .htaccess rules in plain English in 2-3 short bullet points:\n\n{payload.htaccess_code}"
+
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt
+        )
+        return {"explanation": response.text}
+    except ModuleNotFoundError:
+        raise HTTPException(
+            status_code=500,
+            detail="google-genai package is not installed on the server."
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"AI Error: {str(e)}")from dotenv import load_dotenv
 
 # Load environment variables from .env file
 load_dotenv()
