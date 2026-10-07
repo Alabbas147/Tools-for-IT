@@ -19,7 +19,6 @@ from google.genai import types
 
 app = FastAPI(title="Freelance Calculator API")
 GEMINI_KEY = os.getenv("GEMINI_API_KEY")
-gemini_client = genai.Client(api_key=GEMINI_KEY) if GEMINI_KEY else None
 
 app.add_middleware(
     CORSMiddleware,
@@ -371,10 +370,10 @@ async def generate_htaccess(data: HtaccessRequest):
 
 @app.post("/api/v1/explain-htaccess")
 async def explain_htaccess(payload: ExplainRequest):
-    if not gemini_client:
+    if not GEMINI_KEY:
         raise HTTPException(
             status_code=500,
-            detail="Gemini API Key is not configured on server."
+            detail="GEMINI_API_KEY environment variable is not configured on Vercel."
         )
 
     if not payload.htaccess_code.strip():
@@ -390,7 +389,8 @@ async def explain_htaccess(payload: ExplainRequest):
     """
 
     try:
-        response = gemini_client.models.generate_content(
+        client = genai.Client(api_key=GEMINI_KEY)
+        response = client.models.generate_content(
             model="gemini-2.5-flash",
             contents=prompt,
             config=types.GenerateContentConfig(
