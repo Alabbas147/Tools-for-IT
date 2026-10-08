@@ -106,7 +106,7 @@ def generate_htaccess(payload: HtaccessPayload):
         rules.append('Header set Access-Control-Allow-Origin "*"')
     return {"htaccess_code": "\n\n".join(rules)}
 
-# --- TOOL: Gemini AI Explanation Endpoint (Lazy Loaded) ---
+# --- TOOL: Gemini AI Explanation Endpoint (With Fallback) ---
 class ExplainPayload(BaseModel):
     htaccess_code: str
 
@@ -130,11 +130,20 @@ async def explain_htaccess(payload: ExplainPayload):
             "You are a web sysadmin. Explain these .htaccess rules in 2-3 plain English bullet points:\n\n"
             f"{payload.htaccess_code}"
         )
-        response = client.models.generate_content(
-            model="gemini-3.8-flash",
-            contents=prompt
-        )
-        return {"explanation": response.text}
+        models_to_try = ["gemini-3.8-flash", "gemini-2.5-flash", "gemini-1.5-flash"]
+        last_exception = None
+
+        for model_name in models_to_try:
+            try:
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=prompt
+                )
+                return {"explanation": response.text}
+            except Exception as error:
+                last_exception = error
+
+        raise last_exception
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"AI Error: {str(e)}")
 
