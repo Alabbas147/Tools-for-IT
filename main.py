@@ -143,9 +143,9 @@ async def explain_htaccess(payload: ExplainPayload):
             "You are a web sysadmin. Explain these .htaccess rules in 2-3 plain English bullet points:\n\n"
             f"{payload.htaccess_code}"
         )
-        # Try gemini-2.0-flash first
+        # Use the stable production alias from the model list
         response = client.models.generate_content(
-            model="gemini-2.0-flash",
+            model="models/gemini-flash-latest",
             contents=prompt
         )
         return {"explanation": response.text}
