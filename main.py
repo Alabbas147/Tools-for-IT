@@ -106,9 +106,22 @@ def generate_htaccess(payload: HtaccessPayload):
         rules.append('Header set Access-Control-Allow-Origin "*"')
     return {"htaccess_code": "\n\n".join(rules)}
 
-# --- TOOL: Gemini AI Explanation Endpoint (With Fallback) ---
+# --- TOOL: Gemini AI Explanation Endpoint & Model List ---
 class ExplainPayload(BaseModel):
     htaccess_code: str
+
+@app.get("/api/v1/list-models")
+def list_models():
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        return {"error": "GEMINI_API_KEY is missing"}
+    try:
+        from google import genai
+        client = genai.Client(api_key=api_key)
+        models = [m.name for m in client.models.list()]
+        return {"available_models": models}
+    except Exception as e:
+        return {"error": str(e)}
 
 @app.post("/api/v1/explain-htaccess")
 async def explain_htaccess(payload: ExplainPayload):
@@ -130,20 +143,12 @@ async def explain_htaccess(payload: ExplainPayload):
             "You are a web sysadmin. Explain these .htaccess rules in 2-3 plain English bullet points:\n\n"
             f"{payload.htaccess_code}"
         )
-        models_to_try = ["gemini-3.8-flash", "gemini-2.5-flash", "gemini-1.5-flash"]
-        last_exception = None
-
-        for model_name in models_to_try:
-            try:
-                response = client.models.generate_content(
-                    model=model_name,
-                    contents=prompt
-                )
-                return {"explanation": response.text}
-            except Exception as error:
-                last_exception = error
-
-        raise last_exception
+        # Try gemini-2.0-flash first
+        response = client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=prompt
+        )
+        return {"explanation": response.text}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"AI Error: {str(e)}")
 
