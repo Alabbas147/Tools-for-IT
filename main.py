@@ -131,7 +131,7 @@ async def explain_htaccess(payload: ExplainPayload):
             f"{payload.htaccess_code}"
         )
         response = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model="gemini-3.8-flash",
             contents=prompt
         )
         return {"explanation": response.text}
